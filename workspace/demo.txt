@@ -1,0 +1,12 @@
+Hello, World!
+
+This is a demo file for testing MCP Server Filesystem.
+
+Created: July 2025
+
+This file demonstrates:
+- Basic text file operations
+- Search pattern matching
+- File metadata retrieval
+
+Use this workspace to test all filesystem operations safely.

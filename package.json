@@ -1,0 +1,46 @@
+{
+  "name": "mcp-server-filesystem",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server-filesystem.js",
+  "bin": {
+    "mcp-server-filesystem": "./server-filesystem.js"
+  },
+  "scripts": {
+    "start": "node server-filesystem.js ./workspace",
+    "dev": "node server-filesystem.js ./workspace",
+    "test": "echo \"Run your MCP client tests here\" && exit 0",
+    "demo": "echo \"Starting demo server...\" && npm start"
+  },
+  "keywords": [
+    "mcp",
+    "filesystem",
+    "model-context-protocol",
+    "file-management",
+    "glob-patterns",
+    "head-tail-support",
+    "enhanced-search",
+    "file-operations"
+  ],
+  "author": "redf0x1",
+  "license": "MIT",
+  "description": "Enhanced MCP Filesystem Server with 12 comprehensive tools: fixed glob pattern search, head+tail file reading, secure file operations, and command execution",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.16.0",
+    "diff": "^8.0.2",
+    "minimatch": "^10.0.3",
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.6"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/redf0x1/mcp-server-filesystem.git"
+  },
+  "bugs": {
+    "url": "https://github.com/redf0x1/mcp-server-filesystem/issues"
+  },
+  "homepage": "https://github.com/redf0x1/mcp-server-filesystem#readme"
+}

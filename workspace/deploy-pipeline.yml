@@ -1,0 +1,27 @@
+pipeline:
+  name: demo-pipeline
+  description: "Demo CI/CD pipeline for testing search patterns"
+  triggers:
+    - push
+    - pull_request
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: checkout@v4
+        - name: Setup Node.js
+          uses: setup-node@v4
+          with:
+            node-version: '18'
+        - name: Install dependencies
+          run: npm install
+        - name: Run tests
+          run: npm test
+    deploy:
+      runs-on: ubuntu-latest
+      needs: build
+      if: github.ref == 'refs/heads/main'
+      steps:
+        - name: Deploy to production
+          run: echo "Deploying..."

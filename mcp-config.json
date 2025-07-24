@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "filesystem": {
+      "command": "node",
+      "args": [
+        "/path/to/server-filesystem.js",
+        "/home/user/projects",
+        "/home/user/documents",
+        "/workspace/shared"
+      ],
+      "cwd": "/path/to/mcp-server-filesystem"
+    }
+  },
+  "inputs": [],
+  "_comment": "The 'cwd' parameter is required for proper server operation. It should point to the directory containing server-filesystem.js"
+}
