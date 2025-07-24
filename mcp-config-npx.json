@@ -5,7 +5,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "mcp-server-filesystem",
+        "@redf0x1/mcp-server-filesystem",
         "/home/user/projects",
         "/home/user/documents",
         "/home/user/workspace"

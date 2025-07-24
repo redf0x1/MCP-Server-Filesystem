@@ -33,10 +33,10 @@ An **enhanced** Model Context Protocol (MCP) filesystem server that fixes common
 **Option 1: NPM Package (Recommended)**
 ```bash
 # Install globally
-npm install -g mcp-server-filesystem
+npm install -g @redf0x1/mcp-server-filesystem
 
 # Or use with npx (no installation needed)
-npx mcp-server-filesystem /path/to/your/workspace
+npx @redf0x1/mcp-server-filesystem /path/to/your/workspace
 ```
 
 **Option 2: From Source**
@@ -50,7 +50,7 @@ npm install
 
 **With NPX (Recommended):**
 ```bash
-npx mcp-server-filesystem /path/to/allowed/directory
+npx @redf0x1/mcp-server-filesystem /path/to/allowed/directory
 ```
 
 **Direct execution:**
@@ -79,7 +79,7 @@ Add to your `mcp.json`:
       "command": "npx",
       "args": [
         "-y",
-        "mcp-server-filesystem",
+        "@redf0x1/mcp-server-filesystem",
         "/home/user/projects",
         "/home/user/documents"
       ]
@@ -120,7 +120,7 @@ Add to your MCP settings:
         "command": "npx",
         "args": [
           "-y",
-          "mcp-server-filesystem",
+          "@redf0x1/mcp-server-filesystem",
           "/Users/username/workspace",
           "/Users/username/scripts"
         ]
@@ -161,7 +161,7 @@ Configuration in settings:
       "command": "npx",
       "args": [
         "-y", 
-        "mcp-server-filesystem",
+        "@redf0x1/mcp-server-filesystem",
         "/workspace/current-project",
         "/workspace/shared-libs"
       ],
@@ -230,7 +230,7 @@ Standard configuration format:
         "command": "npx",
         "args": [
           "-y",
-          "mcp-server-filesystem",
+          "@redf0x1/mcp-server-filesystem",
           "/path/to/allowed/directory1",
           "/path/to/allowed/directory2"
         ]

@@ -1,5 +1,5 @@
 {
-  "name": "mcp-server-filesystem",
+  "name": "@redf0x1/mcp-server-filesystem",
   "version": "1.0.1",
   "type": "module",
   "main": "server-filesystem.js",
@@ -44,10 +44,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/redf0x1/mcp-server-filesystem.git"
+    "url": "git+https://github.com/redf0x1/MCP-Server-Filesystem.git"
   },
   "bugs": {
-    "url": "https://github.com/redf0x1/mcp-server-filesystem/issues"
+    "url": "https://github.com/redf0x1/MCP-Server-Filesystem/issues"
   },
-  "homepage": "https://github.com/redf0x1/mcp-server-filesystem#readme"
+  "homepage": "https://github.com/redf0x1/MCP-Server-Filesystem#readme"
 }
