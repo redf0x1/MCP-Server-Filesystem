@@ -2,6 +2,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+[![NPM Version](https://img.shields.io/npm/v/@redf0x1/mcp-server-filesystem)](https://www.npmjs.com/package/@redf0x1/mcp-server-filesystem)
+[![NPM Downloads](https://img.shields.io/npm/dt/@redf0x1/mcp-server-filesystem)](https://www.npmjs.com/package/@redf0x1/mcp-server-filesystem)
+[![GitHub Stars](https://img.shields.io/github/stars/redf0x1/MCP-Server-Filesystem)](https://github.com/redf0x1/MCP-Server-Filesystem)
+[![GitHub Issues](https://img.shields.io/github/issues/redf0x1/MCP-Server-Filesystem)](https://github.com/redf0x1/MCP-Server-Filesystem/issues)
 
 An **enhanced** Model Context Protocol (MCP) filesystem server that fixes common limitations and adds powerful features missing from standard implementations.
 
@@ -197,6 +201,25 @@ Configuration in settings:
 
 Add to MCP configuration:
 
+**With NPX:**
+```json
+{
+  "servers": {
+    "filesystem-enhanced": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@redf0x1/mcp-server-filesystem",
+        "/home/developer/projects",
+        "/tmp/workspace"
+      ],
+      "timeout": 30000
+    }
+  }
+}
+```
+
+**With local installation:**
 ```json
 {
   "servers": {
@@ -263,6 +286,7 @@ Standard configuration format:
 
 For containerized environments:
 
+**With NPX:**
 ```json
 {
   "mcpServers": {
@@ -274,7 +298,26 @@ For containerized environments:
         "--mount", "type=bind,src=/host/data,dst=/container/data,ro",
         "node:18-alpine",
         "sh", "-c",
-        "npm install -g mcp-server-filesystem && mcp-server-filesystem /container/projects /container/data"
+        "npx @redf0x1/mcp-server-filesystem /container/projects /container/data"
+      ]
+    }
+  }
+}
+```
+
+**With global installation:**
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "--mount", "type=bind,src=/host/projects,dst=/container/projects",
+        "--mount", "type=bind,src=/host/data,dst=/container/data,ro",
+        "node:18-alpine",
+        "sh", "-c",
+        "npm install -g @redf0x1/mcp-server-filesystem && mcp-server-filesystem /container/projects /container/data"
       ]
     }
   }
@@ -286,7 +329,7 @@ For containerized environments:
 Install globally for easier access:
 
 ```bash
-npm install -g mcp-server-filesystem
+npm install -g @redf0x1/mcp-server-filesystem
 mcp-server-filesystem /your/project/path
 ```
 
