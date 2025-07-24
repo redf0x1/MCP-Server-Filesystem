@@ -28,8 +28,18 @@ An **enhanced** Model Context Protocol (MCP) filesystem server that fixes common
 
 ## 🚀 Quick Start
 
-### Installation
+### Installation Options
 
+**Option 1: NPM Package (Recommended)**
+```bash
+# Install globally
+npm install -g mcp-server-filesystem
+
+# Or use with npx (no installation needed)
+npx mcp-server-filesystem /path/to/your/workspace
+```
+
+**Option 2: From Source**
 ```bash
 git clone https://github.com/redf0x1/mcp-server-filesystem.git
 cd mcp-server-filesystem
@@ -37,6 +47,11 @@ npm install
 ```
 
 ### Usage
+
+**With NPX (Recommended):**
+```bash
+npx mcp-server-filesystem /path/to/allowed/directory
+```
 
 **Direct execution:**
 ```bash
@@ -56,6 +71,25 @@ npm start  # Uses ./workspace as default
 
 Add to your `mcp.json`:
 
+**With NPX (Recommended):**
+```json
+{
+  "servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-server-filesystem",
+        "/home/user/projects",
+        "/home/user/documents"
+      ]
+    }
+  },
+  "inputs": []
+}
+```
+
+**With local installation:**
 ```json
 {
   "servers": {
@@ -77,6 +111,26 @@ Add to your `mcp.json`:
 
 Add to your MCP settings:
 
+**With NPX:**
+```json
+{
+  "mcp": {
+    "servers": {
+      "enhanced-filesystem": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-server-filesystem",
+          "/Users/username/workspace",
+          "/Users/username/scripts"
+        ]
+      }
+    }
+  }
+}
+```
+
+**With local installation:**
 ```json
 {
   "mcp": {
@@ -99,6 +153,27 @@ Add to your MCP settings:
 
 Configuration in settings:
 
+**With NPX:**
+```json
+{
+  "cline.mcp.servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y", 
+        "mcp-server-filesystem",
+        "/workspace/current-project",
+        "/workspace/shared-libs"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  }
+}
+```
+
+**With local installation:**
 ```json
 {
   "cline.mcp.servers": {
@@ -146,8 +221,26 @@ Standard configuration format:
 ```json
 #### Generic MCP Client
 
-Standard configuration format:
+**With NPX (Recommended):**
+```json
+{
+  "mcp": {
+    "servers": {
+      "filesystem": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-server-filesystem",
+          "/path/to/allowed/directory1",
+          "/path/to/allowed/directory2"
+        ]
+      }
+    }
+  }
+}
+```
 
+**With local installation:**
 ```json
 {
   "mcp": {

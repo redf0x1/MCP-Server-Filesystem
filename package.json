@@ -6,6 +6,13 @@
   "bin": {
     "mcp-server-filesystem": "./server-filesystem.js"
   },
+  "files": [
+    "server-filesystem.js",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "preferGlobal": true,
   "scripts": {
     "start": "node server-filesystem.js ./workspace",
     "dev": "node server-filesystem.js ./workspace",
