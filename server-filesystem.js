@@ -181,7 +181,8 @@ const EditOperation = z.object({
 const EditFileArgsSchema = z.object({
     path: z.string(),
     edits: z.array(EditOperation),
-    dryRun: z.boolean().default(false).describe('Preview changes using git-style diff format')
+    dryRun: z.boolean().default(false).describe('Preview changes using git-style diff format'),
+    skipValidation: z.boolean().default(false).describe('Skip syntax validation for the file type')
 });
 
 const RunCommandArgsSchema = z.object({
@@ -307,7 +308,368 @@ function createUnifiedDiff(originalContent, newContent, filepath = 'file') {
     return createTwoFilesPatch(filepath, filepath, normalizedOriginal, normalizedNew, 'original', 'modified');
 }
 
-async function applyFileEdits(filePath, edits, dryRun = false) {
+// File type detection and validation
+function getFileType(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    const fileName = path.basename(filePath).toLowerCase();
+    
+    // Map extensions to file types
+    const typeMap = {
+        '.js': 'javascript',
+        '.jsx': 'javascript',
+        '.ts': 'typescript',
+        '.tsx': 'typescript',
+        '.json': 'json',
+        '.yaml': 'yaml',
+        '.yml': 'yaml',
+        '.xml': 'xml',
+        '.html': 'html',
+        '.css': 'css',
+        '.scss': 'scss',
+        '.sass': 'sass',
+        '.py': 'python',
+        '.php': 'php',
+        '.java': 'java',
+        '.c': 'c',
+        '.cpp': 'cpp',
+        '.h': 'c',
+        '.hpp': 'cpp',
+        '.go': 'go',
+        '.rs': 'rust',
+        '.rb': 'ruby',
+        '.sh': 'shell',
+        '.bash': 'shell',
+        '.sql': 'sql',
+        '.md': 'markdown',
+        '.txt': 'text'
+    };
+    
+    // Special filename patterns
+    if (fileName === 'package.json' || fileName === 'tsconfig.json' || fileName.endsWith('.json')) {
+        return 'json';
+    }
+    if (fileName === 'dockerfile' || fileName.startsWith('dockerfile.')) {
+        return 'dockerfile';
+    }
+    
+    return typeMap[ext] || 'text';
+}
+
+// Basic syntax validation functions
+function validateJavaScript(content) {
+    try {
+        // Basic checks for common syntax errors
+        
+        // Check for unclosed brackets, braces, parentheses
+        const brackets = { '(': ')', '[': ']', '{': '}' };
+        const stack = [];
+        const lines = content.split('\n');
+        
+        for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+            const line = lines[lineNum];
+            let inString = false;
+            let stringChar = '';
+            let escaped = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                
+                if (char === '\\') {
+                    escaped = true;
+                    continue;
+                }
+                
+                if (!inString && (char === '"' || char === "'" || char === '`')) {
+                    inString = true;
+                    stringChar = char;
+                } else if (inString && char === stringChar) {
+                    inString = false;
+                    stringChar = '';
+                } else if (!inString) {
+                    if (brackets[char]) {
+                        stack.push({ char, line: lineNum + 1, col: i + 1 });
+                    } else if (Object.values(brackets).includes(char)) {
+                        if (stack.length === 0) {
+                            return {
+                                valid: false,
+                                error: `Unexpected closing '${char}' at line ${lineNum + 1}, column ${i + 1}`
+                            };
+                        }
+                        const last = stack.pop();
+                        if (brackets[last.char] !== char) {
+                            return {
+                                valid: false,
+                                error: `Mismatched brackets: expected '${brackets[last.char]}' but found '${char}' at line ${lineNum + 1}, column ${i + 1}`
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (stack.length > 0) {
+            const unclosed = stack[stack.length - 1];
+            return {
+                valid: false,
+                error: `Unclosed '${unclosed.char}' starting at line ${unclosed.line}, column ${unclosed.col}`
+            };
+        }
+        
+        // Check for basic syntax patterns (warnings only, not blocking)
+        const commonErrors = [
+            { pattern: /\b(if|while|for)\s*\([^)]*\)\s*(?![{;]|\n)/g, message: "Control statement without block or semicolon" },
+            { pattern: /}\s*else\s+(?![{]|\n)/g, message: "else statement without opening brace" }
+        ];
+        
+        for (const errorCheck of commonErrors) {
+            const matches = content.match(errorCheck.pattern);
+            if (matches && matches.length > 0) {
+                // Just log warnings, don't block the edit
+                console.warn(`[JS Validation] Potential syntax issue: ${errorCheck.message}`);
+            }
+        }
+        
+        return { valid: true };
+    } catch (error) {
+        return {
+            valid: false,
+            error: `JavaScript validation error: ${error.message}`
+        };
+    }
+}
+
+function validateTypeScript(content) {
+    // For TypeScript, first check JavaScript syntax
+    const jsResult = validateJavaScript(content);
+    if (!jsResult.valid) {
+        return jsResult;
+    }
+    
+    try {
+        // TypeScript-specific checks
+        const lines = content.split('\n');
+        
+        for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+            const line = lines[lineNum].trim();
+            
+            // Check for type annotation syntax
+            if (line.includes(':') && !line.includes('//')) {
+                // Basic type annotation validation
+                const typePattern = /:\s*([^=;,)}\]]+)/g;
+                let match;
+                while ((match = typePattern.exec(line)) !== null) {
+                    const typeAnnotation = match[1].trim();
+                    if (typeAnnotation === '') {
+                        return {
+                            valid: false,
+                            error: `Empty type annotation at line ${lineNum + 1}`
+                        };
+                    }
+                }
+            }
+            
+            // Check for interface/type definitions
+            if (line.startsWith('interface ') || line.startsWith('type ')) {
+                if (!line.includes('{') && !line.endsWith('=')) {
+                    return {
+                        valid: false,
+                        error: `Incomplete interface/type definition at line ${lineNum + 1}`
+                    };
+                }
+            }
+        }
+        
+        return { valid: true };
+    } catch (error) {
+        return {
+            valid: false,
+            error: `TypeScript validation error: ${error.message}`
+        };
+    }
+}
+
+function validateJSON(content) {
+    try {
+        JSON.parse(content);
+        return { valid: true };
+    } catch (error) {
+        return {
+            valid: false,
+            error: `JSON syntax error: ${error.message}`
+        };
+    }
+}
+
+function validateYAML(content) {
+    try {
+        // Basic YAML validation - check indentation and structure
+        const lines = content.split('\n');
+        let indentStack = [];
+        
+        for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+            const line = lines[lineNum];
+            if (line.trim() === '' || line.trim().startsWith('#')) {
+                continue; // Skip empty lines and comments
+            }
+            
+            const indent = line.match(/^ */)[0].length;
+            const trimmed = line.trim();
+            
+            // Check for tabs (not allowed in YAML)
+            if (line.includes('\t')) {
+                return {
+                    valid: false,
+                    error: `YAML syntax error: Tabs are not allowed, use spaces for indentation at line ${lineNum + 1}`
+                };
+            }
+            
+            // Basic structure validation
+            if (trimmed.includes(':')) {
+                const parts = trimmed.split(':');
+                if (parts.length < 2) {
+                    return {
+                        valid: false,
+                        error: `YAML syntax error: Invalid key-value pair at line ${lineNum + 1}`
+                    };
+                }
+            }
+        }
+        
+        return { valid: true };
+    } catch (error) {
+        return {
+            valid: false,
+            error: `YAML validation error: ${error.message}`
+        };
+    }
+}
+
+function validateXML(content) {
+    try {
+        // Basic XML validation - check for matching tags
+        const tagPattern = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+        const stack = [];
+        let match;
+        
+        while ((match = tagPattern.exec(content)) !== null) {
+            const fullTag = match[0];
+            const tagName = match[1];
+            
+            if (fullTag.startsWith('</')) {
+                // Closing tag
+                if (stack.length === 0 || stack.pop() !== tagName) {
+                    return {
+                        valid: false,
+                        error: `XML syntax error: Mismatched closing tag </${tagName}>`
+                    };
+                }
+            } else if (!fullTag.endsWith('/>')) {
+                // Opening tag (not self-closing)
+                stack.push(tagName);
+            }
+        }
+        
+        if (stack.length > 0) {
+            return {
+                valid: false,
+                error: `XML syntax error: Unclosed tag <${stack[stack.length - 1]}>`
+            };
+        }
+        
+        return { valid: true };
+    } catch (error) {
+        return {
+            valid: false,
+            error: `XML validation error: ${error.message}`
+        };
+    }
+}
+
+// Get file-type specific validation suggestions
+function getValidationSuggestions(fileType) {
+    const suggestions = {
+        'javascript': [
+            '• Check for missing/extra brackets, braces, or parentheses: { } [ ] ( )',
+            '• Ensure all strings are properly quoted with matching quotes',
+            '• Verify function declarations have proper opening/closing braces',
+            '• Check for missing semicolons at end of statements',
+            '• Ensure proper callback/arrow function syntax: () => {}',
+        ],
+        'typescript': [
+            '• Check for missing/extra brackets, braces, or parentheses: { } [ ] ( )',
+            '• Verify type annotations are properly formatted: variable: type',
+            '• Ensure interface/type definitions are complete with closing braces',
+            '• Check generic type syntax: Array<Type> or Type<T>',
+            '• Verify proper method signatures: method(): returnType',
+            '• Ensure import/export statements are complete',
+        ],
+        'json': [
+            '• Check for missing/extra commas in objects and arrays',
+            '• Ensure all property names are quoted with double quotes',
+            '• Verify no trailing commas after last object/array elements',
+            '• Check for missing/extra brackets and braces: { } [ ]',
+            '• Ensure all strings use double quotes, not single quotes',
+            '• Verify proper JSON structure: no functions, comments, or undefined',
+        ],
+        'yaml': [
+            '• Use spaces for indentation, never tabs',
+            '• Ensure consistent indentation (usually 2 or 4 spaces)',
+            '• Check key-value pairs have proper colon syntax: key: value',
+            '• Verify array items start with proper dash syntax: - item',
+            '• Ensure no trailing spaces at end of lines',
+            '• Check for proper string quoting when needed',
+        ],
+        'xml': [
+            '• Check for missing closing tags: every <tag> needs </tag>',
+            '• Verify self-closing tags end with />',
+            '• Ensure proper tag nesting (no overlapping)',
+            '• Check for missing/extra angle brackets: < >',
+            '• Verify attribute values are properly quoted',
+        ],
+        'html': [
+            '• Check for missing closing tags: every <tag> needs </tag>',
+            '• Verify self-closing tags (img, br, hr) end with />',
+            '• Ensure proper tag nesting (no overlapping)',
+            '• Check for missing/extra angle brackets: < >',
+            '• Verify attribute values are properly quoted',
+            '• Ensure proper DOCTYPE and html structure',
+        ]
+    };
+    
+    return suggestions[fileType] || [
+        '• Check file syntax according to its format specifications',
+        '• Ensure proper structure and formatting',
+        '• Verify all opening/closing elements match',
+        '• Check for missing or extra characters',
+    ];
+}
+
+// Main validation function
+function validateFileContent(content, fileType) {
+    switch (fileType) {
+        case 'javascript':
+            return validateJavaScript(content);
+        case 'typescript':
+            return validateTypeScript(content);
+        case 'json':
+            return validateJSON(content);
+        case 'yaml':
+            return validateYAML(content);
+        case 'xml':
+        case 'html':
+            return validateXML(content);
+        default:
+            // For unknown file types, just return valid
+            return { valid: true };
+    }
+}
+
+async function applyFileEdits(filePath, edits, dryRun = false, skipValidation = false) {
     // Read file content and normalize line endings
     const content = normalizeLineEndings(await fs.readFile(filePath, 'utf-8'));
     
@@ -364,6 +726,36 @@ async function applyFileEdits(filePath, edits, dryRun = false) {
         }
     }
     
+    // Validate the modified content if validation is not skipped
+    if (!skipValidation) {
+        const fileType = getFileType(filePath);
+        const validationResult = validateFileContent(modifiedContent, fileType);
+        
+        if (!validationResult.valid) {
+            // Create file-type specific error message for the model
+            const fileName = path.basename(filePath);
+            const suggestions = getValidationSuggestions(fileType);
+            
+            const errorMsg = [
+                `❌ VALIDATION FAILED for ${fileType} file: ${fileName}`,
+                ``,
+                `Error: ${validationResult.error}`,
+                ``,
+                `🔧 SPECIFIC FIXES for ${fileType.toUpperCase()}:`,
+                ...suggestions,
+                ``,
+                `💡 GENERAL TIPS:`,
+                `• Use dryRun=true to preview changes before applying`,
+                `• Use skipValidation=true only if you're certain the syntax is correct`,
+                `• Check the original file structure and match it exactly`,
+                `• Ensure proper indentation and line endings`,
+                ``
+            ].join('\n');
+            
+            throw new Error(errorMsg);
+        }
+    }
+    
     // Create unified diff
     const diff = createUnifiedDiff(content, modifiedContent, filePath);
     
@@ -372,7 +764,16 @@ async function applyFileEdits(filePath, edits, dryRun = false) {
     while (diff.includes('`'.repeat(numBackticks))) {
         numBackticks++;
     }
-    const formattedDiff = `${'`'.repeat(numBackticks)}diff\n${diff}${'`'.repeat(numBackticks)}\n\n`;
+    
+    let resultMessage = '';
+    
+    // Add validation success message if validation was performed
+    if (!skipValidation) {
+        const fileType = getFileType(filePath);
+        resultMessage += `✅ VALIDATION PASSED for ${fileType} file: ${path.basename(filePath)}\n\n`;
+    }
+    
+    resultMessage += `${'`'.repeat(numBackticks)}diff\n${diff}${'`'.repeat(numBackticks)}\n\n`;
     
     if (!dryRun) {
         // Security: Use atomic rename to prevent race conditions where symlinks
@@ -382,15 +783,18 @@ async function applyFileEdits(filePath, edits, dryRun = false) {
         try {
             await fs.writeFile(tempPath, modifiedContent, 'utf-8');
             await fs.rename(tempPath, filePath);
+            resultMessage += `🎉 File successfully updated: ${path.basename(filePath)}`;
         } catch (error) {
             try {
                 await fs.unlink(tempPath);
             } catch { }
             throw error;
         }
+    } else {
+        resultMessage += `👀 DRY RUN - No changes were applied. Use dryRun=false to apply changes.`;
     }
     
-    return formattedDiff;
+    return resultMessage;
 }
 
 // Command execution utility
@@ -523,9 +927,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "edit_file",
-                description: "Make line-based edits to a text file. Each edit replaces exact line sequences " +
-                    "with new content. Returns a git-style diff showing the changes made. " +
-                    "Only works within allowed directories.",
+                description: "Make line-based edits to a text file with intelligent syntax validation. " +
+                    "Each edit replaces exact line sequences with new content. " +
+                    "Automatically validates syntax for JavaScript, TypeScript, JSON, YAML, XML/HTML files. " +
+                    "Returns detailed error messages if validation fails to help fix syntax issues. " +
+                    "Use dryRun=true to preview changes, skipValidation=true to bypass syntax checks. " +
+                    "Returns a git-style diff showing the changes made. Only works within allowed directories.",
                 inputSchema: zodToJsonSchema(EditFileArgsSchema),
             },
             {
@@ -722,7 +1129,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 }
 
                 const validPath = await validatePath(parsed.data.path);
-                const result = await applyFileEdits(validPath, parsed.data.edits, parsed.data.dryRun);
+                const result = await applyFileEdits(validPath, parsed.data.edits, parsed.data.dryRun, parsed.data.skipValidation);
                 return {
                     content: [{ type: "text", text: result }],
                 };

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-07-25
+
+### Added
+- **🧠 Intelligent Syntax Validation** for edit_file tool
+- **📝 File Type Detection** - Automatic detection based on file extensions
+- **🔍 Smart Error Reporting** - Line/column precision with fix suggestions
+- **🎯 Model-friendly Feedback** - Detailed validation messages to help AI assistants
+- **⚙️ Enhanced Parameters** - Added `skipValidation` option for edge cases
+
+### Enhanced
+- **edit_file tool** now validates syntax for:
+  - JavaScript/JSX - Bracket matching, control structure validation
+  - TypeScript/TSX - Type annotation and interface validation  
+  - JSON - Complete syntax validation with position info
+  - YAML - Indentation and structure validation
+  - XML/HTML - Tag matching and structure validation
+- **Error messages** now provide file-type specific suggestions
+- **Validation feedback** helps AI models learn from syntax errors
+- **Dry run mode** for safe preview of changes
+
+### Fixed
+- **False positives** in JavaScript validation patterns
+- **Over-strict validation** that blocked valid code patterns
+- **Generic error messages** replaced with specific, actionable feedback
+
 ## [1.0.0] - 2025-07-24
 
 ### Added

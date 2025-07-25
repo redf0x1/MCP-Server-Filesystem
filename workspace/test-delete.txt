@@ -1,2 +1,0 @@
-This is a test file for deletion.
-It will be safely removed using the delete_file tool.

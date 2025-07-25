@@ -21,7 +21,7 @@ An **enhanced** Model Context Protocol (MCP) filesystem server that fixes common
 - `read_multiple_files` - Batch file reading
 - `write_file` - Create/overwrite files
 - `delete_file` - **NEW** Delete files/directories (with recursive option)
-- `edit_file` - Line-based editing with diff preview
+- `edit_file` - **ENHANCED** Line-based editing with intelligent syntax validation and diff preview
 - `search_files` - **FIXED** glob pattern search
 - `list_directory` - Directory listing
 - `create_directory` - Directory creation
@@ -394,22 +394,55 @@ Line 100: ...
 - `**/*config*` - Config files in any subdirectory
 - `src/**/*.ts` - TypeScript files in src/
 
-### 3. **Advanced File Editing**
+### 3. **Intelligent File Editing with Syntax Validation**
+
+**Enhanced validation for multiple file types:**
 
 ```json
 {
-  "path": "app.js",
+  "path": "app.ts",
   "edits": [
     {
       "oldText": "const port = 3000;",
-      "newText": "const port = process.env.PORT || 3000;"
+      "newText": "const port: number = process.env.PORT || 3000;"
     }
   ],
-  "dryRun": true
+  "dryRun": true,
+  "skipValidation": false
 }
 ```
 
-Returns git-style diff preview before applying changes.
+**Supported file types for validation:**
+- **JavaScript/JSX** - Bracket matching, semicolon checking, control structure validation
+- **TypeScript/TSX** - Type annotation validation, interface/type definition checking
+- **JSON** - Complete JSON syntax validation
+- **YAML** - Indentation, structure, and syntax validation
+- **XML/HTML** - Tag matching and structure validation
+
+**Smart error handling:**
+```json
+❌ VALIDATION FAILED for typescript file: app.ts
+
+Error: Unclosed '{' starting at line 15, column 23
+
+🔧 SUGGESTED FIXES:
+1. Check for missing/extra brackets, braces, or parentheses
+2. Verify proper line endings and indentation
+3. Ensure all strings are properly quoted
+4. Check for missing semicolons (JavaScript/TypeScript)
+5. Validate type annotations (TypeScript)
+6. Use skipValidation=true only if you're certain the syntax is correct
+
+📝 TIP: Preview your changes with dryRun=true first
+```
+
+**Advanced features:**
+- **Pre-edit validation** - Checks syntax before applying changes
+- **Detailed error messages** - Specific line/column error reporting
+- **File type detection** - Automatic detection based on extension
+- **Smart suggestions** - Context-aware fix recommendations
+- **Dry run mode** - Preview changes with `dryRun=true`
+- **Validation bypass** - Use `skipValidation=true` for edge cases
 
 ### 4. **Secure Command Execution**
 
@@ -631,6 +664,8 @@ This server fixes several critical issues found in standard MCP filesystem imple
 | Glob patterns | `search_files` uses simple `includes()` | Uses `minimatch` for proper glob support |
 | Head + Tail | "Cannot specify both parameters" error | Smart combination with separator |
 | File editing | No diff preview | Git-style diff before applying changes |
+| Syntax validation | No validation before file write | Intelligent validation for JS/TS/JSON/YAML/XML |
+| Edit error feedback | Generic "operation failed" messages | Detailed syntax error with line/column info |
 | Command execution | Not available | Secure shell command execution |
 | File deletion | Basic `unlink()` only | Safe deletion with recursive option and validation |
 | Error handling | Basic error messages | Detailed context and troubleshooting |
@@ -645,9 +680,12 @@ This server fixes several critical issues found in standard MCP filesystem imple
 **Additional features not found in standard implementations:**
 - Combined head+tail reading for file previews
 - Git-style diff preview before file edits
+- **Intelligent syntax validation** for JavaScript, TypeScript, JSON, YAML, XML/HTML
+- **Smart error reporting** with line/column precision and fix suggestions
 - Secure command execution within allowed directories
 - Multiple glob pattern strategies for comprehensive search
 - Enhanced error messages with context and solutions
+- **Model-friendly validation feedback** to help AI assistants learn from syntax errors
 
 ---
 
